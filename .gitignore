@@ -163,4 +163,4 @@ cython_debug/
 /scripts
 
 .DS_store
-/data
+data
