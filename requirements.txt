@@ -1,0 +1,9 @@
+python-dotenv
+openai
+pandas
+langchain
+fastapi
+langchain-openai
+dataclasses
+openpyxl
+scikit-learn
