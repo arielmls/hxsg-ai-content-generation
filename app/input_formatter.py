@@ -4,6 +4,7 @@ import json
 
 from .hxsg_brands import HXSGBrand
 
+
 class InputFormatter:
     def format_inputs(self, inputs: List[str], brand: HXSGBrand = HXSGBrand.HALLER):
         formatted = []
