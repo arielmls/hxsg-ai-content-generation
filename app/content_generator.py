@@ -8,6 +8,7 @@ import json
 from langchain_core.pydantic_v1 import BaseModel, Field
 import dotenv
 import tomllib
+import logging
 
 from .compare_text_similarity import TextComparer
 from .hxsg_brands import HXSGBrand
@@ -15,6 +16,7 @@ from .hxsg_brands import HXSGBrand
 dotenv.load_dotenv()
 
 llm = ChatOpenAI()
+
 
 class FAQ(BaseModel):
     question: str = Field(description="the question")
@@ -25,7 +27,10 @@ class ContentGenerator:
     def __init__(self) -> None:
         with open("app/prompts.toml", "rb") as f:
             prompts = tomllib.load(f)["prompts"]
-        self.prompts = {key:(value["speaker"], value["prompt_text"]) for key,value in prompts.items()}
+        self.prompts = {
+            key: (value["speaker"], value["prompt_text"])
+            for key, value in prompts.items()
+        }
 
     def set_up_runnable(self, prompt_messages):
         prompt = ChatPromptTemplate.from_messages(prompt_messages)
@@ -49,15 +54,16 @@ class ContentGenerator:
             )
         return info
 
-    def remove_key_from_outputs(self, ouputs:List[dict], key_name: str) -> None:
+    def remove_key_from_outputs(self, ouputs: List[dict], key_name: str) -> None:
         new_outputs = []
         for i in range(len(ouputs)):
             ouputs[i].pop(key_name)
-            
 
-    def generate_blog_posts(self, inputs: List[dict], output_filepath:str =False):
+    def generate_blog_posts(self, inputs: List[dict], output_filepath: str = False):
         relevant_service_page_chain = RunnablePassthrough.assign(
-            webpage=self.set_up_runnable([self.prompts["get_relevant_service_page_human"]])
+            webpage=self.set_up_runnable(
+                [self.prompts["get_relevant_service_page_human"]]
+            )
         )
         additional_keywords_chain = (
             relevant_service_page_chain
@@ -69,7 +75,10 @@ class ContentGenerator:
         )
         generate_article_chain = additional_keywords_chain | RunnablePassthrough.assign(
             generated_article=self.set_up_runnable(
-                [self.prompts["generate_article_system"], self.prompts["generate_article_human"]]
+                [
+                    self.prompts["generate_article_system"],
+                    self.prompts["generate_article_human"],
+                ]
             )
         )
         optimize_article_length_chain = generate_article_chain | RunnableLambda(
@@ -87,7 +96,11 @@ class ContentGenerator:
             )
         )
 
-        outputs = generate_meta_description_chain.batch(inputs)
+        try:
+            outputs = generate_meta_description_chain.batch(inputs)
+        except Exception as e:
+            logging.error(f"Error: could not generate articles. {e}")
+
         self.remove_key_from_outputs(outputs, "brand_service_pages")
         if output_filepath:
             with open(output_filepath, "w") as outfile:
@@ -135,8 +148,12 @@ class ContentGenerator:
         optimize_faq_length_chain = generate_faq_chain | RunnableLambda(
             self.decrease_answer_character_count
         )
-
-        generated_faqs = self.format_faq_chain_output(optimize_faq_length_chain.batch(inputs))
+        try:
+            generated_faqs = self.format_faq_chain_output(
+                optimize_faq_length_chain.batch(inputs)
+            )
+        except Exception as e:
+            logging.error(f"Error: could not generate FAQs. {e}")
         similar_faqs = self.check_faq_similarity(generated_faqs)
         output = {"faqs": generated_faqs, "similarly_worded_faqs": similar_faqs}
 
@@ -145,6 +162,7 @@ class ContentGenerator:
                 json.dump(output, outfile, indent=6)
 
         return output
+
 
 if __name__ == "__main__":
     pass
