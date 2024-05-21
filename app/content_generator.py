@@ -11,7 +11,6 @@ import tomllib
 import logging
 
 from .compare_text_similarity import TextComparer
-from .hxsg_brands import HXSGBrand
 
 dotenv.load_dotenv()
 
