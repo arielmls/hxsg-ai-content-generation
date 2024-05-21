@@ -1,10 +1,10 @@
 from langchain_openai import ChatOpenAI
-from langchain_core.runnables import RunnablePassthrough, RunnableLambda
-
+from langchain_core.runnables import RunnablePassthrough, RunnableLambda, base
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
-from typing import List
-import json
+from typing import List, Tuple
+from fastapi import HTTPException
+
 from langchain_core.pydantic_v1 import BaseModel, Field
 import dotenv
 import tomllib
@@ -32,13 +32,16 @@ class ContentGenerator:
             for key, value in prompts.items()
         }
 
-    def set_up_runnable(self, prompt_messages):
+    def set_up_runnable(self, prompt_messages: List[Tuple[str]]) -> base.Runnable:
         prompt = ChatPromptTemplate.from_messages(prompt_messages)
         runnable = prompt | llm | StrOutputParser()
         return runnable
 
-    def increase_wordcount(self, info):
-        prompt = ChatPromptTemplate.from_messages(
+    def get_wordcount(self, text: str) -> int:
+        return len(text.split(" "))
+
+    def increase_wordcount(self, info: dict) -> dict:
+        runnable = self.set_up_runnable(
             [
                 self.prompts["generate_article_system"],
                 self.prompts["generate_article_human"],
@@ -46,8 +49,7 @@ class ContentGenerator:
                 self.prompts["increase_wordcount_human"],
             ]
         )
-        runnable = prompt | llm | StrOutputParser()
-        wordcount = len(info["generated_article"].split(" "))
+        wordcount = self.get_wordcount(info["generated_article"])
         if wordcount < 500:
             return RunnablePassthrough() | RunnablePassthrough.assign(
                 generated_article=runnable
@@ -55,11 +57,10 @@ class ContentGenerator:
         return info
 
     def remove_key_from_outputs(self, ouputs: List[dict], key_name: str) -> None:
-        new_outputs = []
         for i in range(len(ouputs)):
             ouputs[i].pop(key_name)
 
-    def generate_blog_posts(self, inputs: List[dict], output_filepath: str = False):
+    def generate_blog_posts(self, inputs: List[dict]) -> List[dict]:
         relevant_service_page_chain = RunnablePassthrough.assign(
             webpage=self.set_up_runnable(
                 [self.prompts["get_relevant_service_page_human"]]
@@ -100,15 +101,14 @@ class ContentGenerator:
             outputs = generate_meta_description_chain.batch(inputs)
         except Exception as e:
             logging.error(f"Error: could not generate articles. {e}")
-
+            raise HTTPException(status_code=500, detail=e)
         self.remove_key_from_outputs(outputs, "brand_service_pages")
-        if output_filepath:
-            with open(output_filepath, "w") as outfile:
-                json.dump(outputs, outfile, indent=6)
-
         return outputs
 
-    def decrease_answer_character_count(self, info):
+    def get_character_count(self, text):
+        return len(text)
+
+    def decrease_answer_character_count(self, info: dict) -> dict:
         prompt = ChatPromptTemplate.from_messages(
             [
                 self.prompts["generate_faq_system"],
@@ -118,18 +118,18 @@ class ContentGenerator:
             ]
         )
         runnable = prompt | llm | StrOutputParser()
-        answer_character_count = len(info["faq"]["answer"].split(" "))
+        answer_character_count = self.get_character_count(info["faq"]["answer"])
         if answer_character_count > 400:
             return RunnablePassthrough() | RunnablePassthrough.assign(faq=runnable)
         return info
 
-    def format_faq_chain_output(self, output):
+    def format_faq_chain_output(self, output: List[dict]) -> List[dict]:
         formatted = []
         for faq in output:
             formatted.append(faq["faq"])
         return formatted
 
-    def check_faq_similarity(self, faqs):
+    def check_faq_similarity(self, faqs: List[dict]) -> dict:
         corpus = [x["answer"] for x in faqs]
         text_comparer = TextComparer(corpus)
         groups_of_similar_answers_by_index = text_comparer.find_similar_groups()
@@ -139,7 +139,7 @@ class ContentGenerator:
             groups_of_similar_answers_by_contents.append(group_with_text)
         return groups_of_similar_answers_by_contents
 
-    def generate_faqs(self, inputs: List[dict], output_filepath: str = False):
+    def generate_faqs(self, inputs: List[dict]) -> dict:
         prompt = ChatPromptTemplate.from_messages(
             [self.prompts["generate_faq_system"], self.prompts["generate_faq_human"]]
         )
@@ -154,12 +154,9 @@ class ContentGenerator:
             )
         except Exception as e:
             logging.error(f"Error: could not generate FAQs. {e}")
+            raise HTTPException(status_code=500, detail=e)
         similar_faqs = self.check_faq_similarity(generated_faqs)
         output = {"faqs": generated_faqs, "similarly_worded_faqs": similar_faqs}
-
-        if output_filepath:
-            with open(output_filepath, "w") as outfile:
-                json.dump(output, outfile, indent=6)
 
         return output
 
