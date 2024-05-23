@@ -4,9 +4,9 @@ Generate blog posts and Q&As to improve the SEO of the HxSG service company webs
 
 ## Run the App Locally
 1. Clone the repo
-2. Create a .env file in the root directory with your Open AI key
+2. Create a .env file in the root directory with your Open AI API key
 ```
-OPENAI_API_KEY=your_open_ai_key_here
+OPENAI_API_KEY=your_open_ai_api_key_here
 ```
 3. Install requirements
 `pip install -r "requirements.txt"`
