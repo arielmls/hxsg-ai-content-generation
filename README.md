@@ -3,13 +3,16 @@
 Generate blog posts and Q&As to improve the SEO of the HxSG service company websites
 
 ## Run the App Locally
-Install requirements
+1. Clone the repo
+2. Create a .env file in the root directory with your Open AI key
+```
+OPENAI_API_KEY=your_open_ai_key_here
+```
+3. Install requirements
 `pip install -r "requirements.txt"`
-
-Run FastAPI app
+3. Run FastAPI app
 `fastapi dev app/main.py`
-
-Open swagger docs in browser
+4. Open swagger docs in browser
 http://127.0.0.1:8000/docs
 
 
