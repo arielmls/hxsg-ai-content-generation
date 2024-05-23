@@ -58,7 +58,7 @@ class ContentGenerator:
     def remove_key_from_outputs(self, ouputs: List[dict], key_name: str) -> None:
         for i in range(len(ouputs)):
             ouputs[i].pop(key_name)
-    
+
     @property
     def relevant_service_page_chain(self):
         return RunnablePassthrough.assign(
@@ -66,18 +66,15 @@ class ContentGenerator:
                 [self.prompts["get_relevant_service_page_human"]]
             )
         )
-    
+
     @property
     def additional_keywords_chain(self):
-        return (
-            self.relevant_service_page_chain
-            | RunnablePassthrough.assign(
-                additional_keywords=self.set_up_runnable(
-                    [self.prompts["get_additional_keywords_human"]]
-                )
+        return self.relevant_service_page_chain | RunnablePassthrough.assign(
+            additional_keywords=self.set_up_runnable(
+                [self.prompts["get_additional_keywords_human"]]
             )
         )
-    
+
     @property
     def generate_article_chain(self):
         return self.additional_keywords_chain | RunnablePassthrough.assign(
@@ -88,27 +85,22 @@ class ContentGenerator:
                 ]
             )
         )
-    
+
     @property
     def optimize_article_length_chain(self):
-        return self.generate_article_chain | RunnableLambda(
-            self.increase_wordcount
-        )
-    
+        return self.generate_article_chain | RunnableLambda(self.increase_wordcount)
+
     @property
     def generate_meta_description_chain(self):
-        return (
-            self.optimize_article_length_chain
-            | RunnablePassthrough.assign(
-                meta_description=self.set_up_runnable(
-                    [
-                        self.prompts["meta_description_system"],
-                        self.prompts["meta_description_human"],
-                    ]
-                )
+        return self.optimize_article_length_chain | RunnablePassthrough.assign(
+            meta_description=self.set_up_runnable(
+                [
+                    self.prompts["meta_description_system"],
+                    self.prompts["meta_description_human"],
+                ]
             )
         )
-    
+
     def generate_blog_posts(self, inputs: List[dict]) -> List[dict]:
         try:
             outputs = self.generate_meta_description_chain.batch(inputs)
@@ -159,13 +151,13 @@ class ContentGenerator:
         )
         generate_faq_runnable = prompt | llm | JsonOutputParser(pydantic_object=FAQ)
         return RunnablePassthrough.assign(faq=generate_faq_runnable)
-    
+
     @property
     def optimize_faq_length_chain(self):
         return self.generate_faq_chain | RunnableLambda(
             self.decrease_answer_character_count
         )
-    
+
     def generate_faqs(self, inputs: List[dict]) -> dict:
         try:
             generated_faqs = self.format_faq_chain_output(

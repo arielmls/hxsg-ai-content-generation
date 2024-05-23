@@ -17,22 +17,12 @@ class InputFormatter:
             formatted.append(formatted_input)
         return formatted
 
-    def get_blog_post_topics_from_spreadsheet(
-        self, topic_column_name, spreadsheet_filepath
+    def get_topics_from_spreadsheet(
+        self, topic_column_name, spreadsheet_filepath, content_type="FAQ"
     ):
         input_df = pd.read_excel(spreadsheet_filepath)
         if "Blog or FAQ" in input_df.columns:
-            input_df = input_df[input_df["Blog or FAQ"] == "Blog"]
-        input_df = input_df.rename(columns={topic_column_name: "topic"})
-        inputs = self.format_inputs(
-            json.loads(input_df["topic"].to_json(orient="records"))
-        )
-        return inputs
-
-    def get_faq_topics_from_spreadsheet(self, topic_column_name, spreadsheet_filepath):
-        input_df = pd.read_excel(spreadsheet_filepath)
-        if "Blog or FAQ" in input_df.columns:
-            input_df = input_df[input_df["Blog or FAQ"] == "FAQ"]
+            input_df = input_df[input_df["Blog or FAQ"] == content_type]
         input_df = input_df.rename(columns={topic_column_name: "topic"})
         inputs = self.format_inputs(
             json.loads(input_df["topic"].to_json(orient="records"))
