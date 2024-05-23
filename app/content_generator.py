@@ -58,22 +58,29 @@ class ContentGenerator:
     def remove_key_from_outputs(self, ouputs: List[dict], key_name: str) -> None:
         for i in range(len(ouputs)):
             ouputs[i].pop(key_name)
-
-    def generate_blog_posts(self, inputs: List[dict]) -> List[dict]:
-        relevant_service_page_chain = RunnablePassthrough.assign(
+    
+    @property
+    def relevant_service_page_chain(self):
+        return RunnablePassthrough.assign(
             webpage=self.set_up_runnable(
                 [self.prompts["get_relevant_service_page_human"]]
             )
         )
-        additional_keywords_chain = (
-            relevant_service_page_chain
+    
+    @property
+    def additional_keywords_chain(self):
+        return (
+            self.relevant_service_page_chain
             | RunnablePassthrough.assign(
                 additional_keywords=self.set_up_runnable(
                     [self.prompts["get_additional_keywords_human"]]
                 )
             )
         )
-        generate_article_chain = additional_keywords_chain | RunnablePassthrough.assign(
+    
+    @property
+    def generate_article_chain(self):
+        return self.additional_keywords_chain | RunnablePassthrough.assign(
             generated_article=self.set_up_runnable(
                 [
                     self.prompts["generate_article_system"],
@@ -81,11 +88,17 @@ class ContentGenerator:
                 ]
             )
         )
-        optimize_article_length_chain = generate_article_chain | RunnableLambda(
+    
+    @property
+    def optimize_article_length_chain(self):
+        return self.generate_article_chain | RunnableLambda(
             self.increase_wordcount
         )
-        generate_meta_description_chain = (
-            optimize_article_length_chain
+    
+    @property
+    def generate_meta_description_chain(self):
+        return (
+            self.optimize_article_length_chain
             | RunnablePassthrough.assign(
                 meta_description=self.set_up_runnable(
                     [
@@ -95,9 +108,10 @@ class ContentGenerator:
                 )
             )
         )
-
+    
+    def generate_blog_posts(self, inputs: List[dict]) -> List[dict]:
         try:
-            outputs = generate_meta_description_chain.batch(inputs)
+            outputs = self.generate_meta_description_chain.batch(inputs)
         except Exception as e:
             logging.error(f"Error: could not generate articles. {e}")
             raise HTTPException(status_code=500, detail=e)
@@ -138,18 +152,24 @@ class ContentGenerator:
             groups_of_similar_answers_by_contents.append(group_with_text)
         return groups_of_similar_answers_by_contents
 
-    def generate_faqs(self, inputs: List[dict]) -> dict:
+    @property
+    def generate_faq_chain(self):
         prompt = ChatPromptTemplate.from_messages(
             [self.prompts["generate_faq_system"], self.prompts["generate_faq_human"]]
         )
         generate_faq_runnable = prompt | llm | JsonOutputParser(pydantic_object=FAQ)
-        generate_faq_chain = RunnablePassthrough.assign(faq=generate_faq_runnable)
-        optimize_faq_length_chain = generate_faq_chain | RunnableLambda(
+        return RunnablePassthrough.assign(faq=generate_faq_runnable)
+    
+    @property
+    def optimize_faq_length_chain(self):
+        return self.generate_faq_chain | RunnableLambda(
             self.decrease_answer_character_count
         )
+    
+    def generate_faqs(self, inputs: List[dict]) -> dict:
         try:
             generated_faqs = self.format_faq_chain_output(
-                optimize_faq_length_chain.batch(inputs)
+                self.optimize_faq_length_chain.batch(inputs)
             )
         except Exception as e:
             logging.error(f"Error: could not generate FAQs. {e}")
