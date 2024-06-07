@@ -1,8 +1,6 @@
 import dotenv
-import os
 from fastapi import FastAPI
 from typing import List
-from pydantic import BaseModel
 from .content_generator import ContentGenerator
 from .input_formatter import InputFormatter
 from .hxsg_brands import HXSGBrand
@@ -15,8 +13,6 @@ app = FastAPI()
 @app.get("/")
 def root():
     return {"message": "hello world"}
-
-
 
 
 @app.post("/generate_blog_post/")

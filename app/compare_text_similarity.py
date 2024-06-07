@@ -1,17 +1,18 @@
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
-from typing import List, Tuple
+from typing import List
 from collections import deque
 from numpy import ndarray
 
+
 class Graph:
-    def __init__(self, adjacency_map:dict[int, List[int]]) -> None:
+    def __init__(self, adjacency_map: dict[int, List[int]]) -> None:
         self.adjacency_map = adjacency_map
         self.nodes = list(adjacency_map.keys())
-    
+
     def __eq__(self, other) -> bool:
         return self.adjacency_map == other
-    
+
     @property
     def components(self) -> List[List[int]]:
         """Components of the graph (see definition: https://en.wikipedia.org/wiki/Component_(graph_theory))"""
@@ -33,16 +34,15 @@ class Graph:
                             queue.append(neighbour)
                 components.append(component)
         return components
-    
+
     @property
-    def multi_node_components(self)-> List[List[int]]:
+    def multi_node_components(self) -> List[List[int]]:
         """Components with more than one node"""
         multi_node_components = []
         for component in self.components:
             if len(component) > 1:
                 multi_node_components.append(component)
         return multi_node_components
-    
 
 
 class TextComparer:
@@ -65,11 +65,6 @@ class TextComparer:
                     neighbours.append(j)
             adjacency_map[i] = neighbours
         return Graph(adjacency_map)
-    
+
     def find_groups_of_similar_text(self, cutoff=0.55):
         return self.similarity_graph().multi_node_components
-    
-
-
-
-
