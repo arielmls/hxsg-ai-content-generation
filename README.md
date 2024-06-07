@@ -17,10 +17,14 @@ http://127.0.0.1:8000/docs
 
 
 ## Endpoints
-### /generate_haller_blog_post/
-Generates blog posts for Haller Enterprises
-*Input:* (list of strings) List of long tail keywords to use as topics for geenrated blog posts
+### /generate_blog_post/
+Generates blog posts 
+#### Input:
+- longtail_keywords: (list of strings) List of long tail keywords to use as topics for geenrated blog posts
+- brand: (string) one of "Gem Plumbing and Heating", "Haller Enterprises", "Universe Home Services"
 
-### /generate_haller_faq/
-Generates Q&As for Haller Enterprises
-*Input:* (list of strings) List of long tail keywords to use as topics for short Q&As
+### /generate_faq/
+Generates shorter Q&As 
+#### Input:
+- longtail_keywords:  (list of strings) List of long tail keywords to use as topics for short Q&As
+- brand: (string) one of "Gem Plumbing and Heating", "Haller Enterprises", "Universe Home Services"
