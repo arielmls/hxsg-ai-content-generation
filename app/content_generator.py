@@ -137,7 +137,7 @@ class ContentGenerator:
     def check_faq_similarity(self, faqs: List[dict]) -> dict:
         corpus = [x["answer"] for x in faqs]
         text_comparer = TextComparer(corpus)
-        groups_of_similar_answers_by_index = text_comparer.find_similar_groups()
+        groups_of_similar_answers_by_index = text_comparer.find_groups_of_similar_text()
         groups_of_similar_answers_by_contents = []
         for group in groups_of_similar_answers_by_index:
             group_with_text = [faqs[x] for x in group]
