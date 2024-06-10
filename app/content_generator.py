@@ -4,6 +4,7 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from typing import List, Tuple
 from fastapi import HTTPException
+import re
 
 from langchain_core.pydantic_v1 import BaseModel, Field
 import dotenv
@@ -60,23 +61,39 @@ class ContentGenerator:
             ouputs[i].pop(key_name)
 
     @property
-    def relevant_service_page_chain(self):
+    def relevant_service_page_chain(self) -> base.Runnable:
         return RunnablePassthrough.assign(
             webpage=self.set_up_runnable(
                 [self.prompts["get_relevant_service_page_human"]]
             )
         )
 
+    def convert_additional_keywords_to_list(self, info) -> dict:
+        additional_keywords = info["additional_keywords"]
+        additional_keywords.replace("\n", "")
+        # Use regular expression to split by numbers followed by a period and a space
+        split_keywords = re.split(r"\d+\.\s*", additional_keywords)
+
+        # Remove any empty strings that may result from the split
+        split_keywords = [item for item in split_keywords if item]
+        info["additional_keywords"] = split_keywords
+        return info
+
     @property
-    def additional_keywords_chain(self):
-        return self.relevant_service_page_chain | RunnablePassthrough.assign(
-            additional_keywords=self.set_up_runnable(
-                [self.prompts["get_additional_keywords_human"]]
+    def additional_keywords_chain(self) -> base.Runnable:
+
+        return (
+            self.relevant_service_page_chain
+            | RunnablePassthrough.assign(
+                additional_keywords=self.set_up_runnable(
+                    [self.prompts["get_additional_keywords_human"]]
+                )
             )
+            | RunnableLambda(self.convert_additional_keywords_to_list)
         )
 
     @property
-    def generate_article_chain(self):
+    def generate_article_chain(self) -> base.Runnable:
         return self.additional_keywords_chain | RunnablePassthrough.assign(
             generated_article=self.set_up_runnable(
                 [
@@ -87,11 +104,11 @@ class ContentGenerator:
         )
 
     @property
-    def optimize_article_length_chain(self):
+    def optimize_article_length_chain(self) -> base.Runnable:
         return self.generate_article_chain | RunnableLambda(self.increase_wordcount)
 
     @property
-    def generate_meta_description_chain(self):
+    def generate_meta_description_chain(self) -> base.Runnable:
         return self.optimize_article_length_chain | RunnablePassthrough.assign(
             meta_description=self.set_up_runnable(
                 [
@@ -110,7 +127,7 @@ class ContentGenerator:
         self.remove_key_from_outputs(outputs, "brand_service_pages")
         return outputs
 
-    def get_character_count(self, text):
+    def get_character_count(self, text: str) -> int:
         return len(text)
 
     def decrease_answer_character_count(self, info: dict) -> dict:
@@ -145,7 +162,7 @@ class ContentGenerator:
         return groups_of_similar_answers_by_contents
 
     @property
-    def generate_faq_chain(self):
+    def generate_faq_chain(self) -> base.Runnable:
         prompt = ChatPromptTemplate.from_messages(
             [self.prompts["generate_faq_system"], self.prompts["generate_faq_human"]]
         )
@@ -153,7 +170,7 @@ class ContentGenerator:
         return RunnablePassthrough.assign(faq=generate_faq_runnable)
 
     @property
-    def optimize_faq_length_chain(self):
+    def optimize_faq_length_chain(self) -> base.Runnable:
         return self.generate_faq_chain | RunnableLambda(
             self.decrease_answer_character_count
         )
@@ -170,15 +187,3 @@ class ContentGenerator:
         output = {"faqs": generated_faqs, "similarly_worded_faqs": similar_faqs}
 
         return output
-
-
-if __name__ == "__main__":
-    pass
-    # content_generator = ContentGenerator(HXSGBrand.HALLER)
-    # # content_generator.generate_blog_posts([{"topic": "Can central heating be installed in my house that doesn't already have it?", "brand_service_pages": HXSGBrand.HALLER.brand_service_pages}], "app/data/test1.json")
-    # input_formatter = InputFormatter()
-
-    # input = input_formatter.get_faq_topics_from_spreadsheet(
-    #     "Question/Topic", "app/data/HomeX - AI Project - Phase 1.xlsx"
-    # )
-    # content_generator.generate_faqs(input, "app/data/phase_1_faqs.json")
