@@ -18,13 +18,13 @@ http://127.0.0.1:8000/docs
 
 ## Endpoints
 ### /generate_blog_post/
-Generates blog posts 
+Generates blog posts.
 #### Input:
 - longtail_keywords: (list of strings) List of long tail keywords to use as topics for geenrated blog posts
 - brand: (string) one of "Gem Plumbing and Heating", "Haller Enterprises", "Universe Home Services"
 
 ### /generate_faq/
-Generates shorter Q&As 
+Generates shorter Q&As. The "similarly_worded_faqs" in the output flags the indices of any faqs with similarly worded answers, to ensure that duplicate content is not uploaded to the FAQ pages
 #### Input:
 - longtail_keywords:  (list of strings) List of long tail keywords to use as topics for short Q&As
 - brand: (string) one of "Gem Plumbing and Heating", "Haller Enterprises", "Universe Home Services"
