@@ -56,7 +56,7 @@ class TextComparer:
         cosine_sim = cosine_similarity(tfidf_matrix, tfidf_matrix)
         return cosine_sim
 
-    def similarity_graph(self, cutoff=0.55) -> Graph:
+    def similarity_graph(self, cutoff=0.45) -> Graph:
         adjacency_map = {}
         for i, row in enumerate(self.tfidf_cosine_similarity_matrix):
             neighbours = []
@@ -66,5 +66,5 @@ class TextComparer:
             adjacency_map[i] = neighbours
         return Graph(adjacency_map)
 
-    def find_groups_of_similar_text(self, cutoff=0.55):
+    def find_groups_of_similar_text(self, cutoff=0.45):
         return self.similarity_graph().multi_node_components
