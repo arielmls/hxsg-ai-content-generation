@@ -5,7 +5,8 @@ from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
 from typing import List, Tuple
 from fastapi import HTTPException
 import re
-
+import json
+import mistletoe
 from langchain_core.pydantic_v1 import BaseModel, Field
 import dotenv
 import tomllib
@@ -118,14 +119,20 @@ class ContentGenerator:
             )
         )
 
+    def format_articles_in_html(self, articles: List[dict]) -> None:
+        for i, article in enumerate(articles):
+            as_html = mistletoe.markdown(article["generated_article"])
+            articles[i]["generated_article"] = as_html
+
     def generate_blog_posts(self, inputs: List[dict]) -> List[dict]:
         try:
-            outputs = self.generate_meta_description_chain.batch(inputs)
+            articles = self.generate_meta_description_chain.batch(inputs)
         except Exception as e:
             logging.error(f"Error: could not generate articles. {e}")
             raise HTTPException(status_code=500, detail=e)
-        self.remove_key_from_outputs(outputs, "brand_service_pages")
-        return outputs
+        self.remove_key_from_outputs(articles, "brand_service_pages")
+        self.format_articles_in_html(articles)
+        return articles
 
     def get_character_count(self, text: str) -> int:
         return len(text)
@@ -154,12 +161,7 @@ class ContentGenerator:
     def check_faq_similarity(self, faqs: List[dict]) -> dict:
         corpus = [x["answer"] for x in faqs]
         text_comparer = TextComparer(corpus)
-        groups_of_similar_answers_by_index = text_comparer.find_groups_of_similar_text()
-        groups_of_similar_answers_by_contents = []
-        for group in groups_of_similar_answers_by_index:
-            group_with_text = [faqs[x] for x in group]
-            groups_of_similar_answers_by_contents.append(group_with_text)
-        return groups_of_similar_answers_by_contents
+        return text_comparer.find_groups_of_similar_text()
 
     @property
     def generate_faq_chain(self) -> base.Runnable:
@@ -175,6 +177,20 @@ class ContentGenerator:
             self.decrease_answer_character_count
         )
 
+    def format_gerated_faqs(self, generated_faqs: List) -> List[dict[str, str]]:
+        faqs = []
+        for faq in generated_faqs:
+            if type(faq) == str and faq[0] == "{" and faq[-1] == "}":
+                faqs.append(json.loads(faq))
+            elif type(faq) == dict:
+                faqs.append(faq)
+            else:
+                raise HTTPException(
+                    status_code=500,
+                    detail=f"GPT output did not follow correct formatting. Instead of json, faq was represented as {type(faq)}",
+                )
+        return faqs
+
     def generate_faqs(self, inputs: List[dict]) -> dict:
         try:
             generated_faqs = self.format_faq_chain_output(
@@ -183,6 +199,7 @@ class ContentGenerator:
         except Exception as e:
             logging.error(f"Error: could not generate FAQs. {e}")
             raise HTTPException(status_code=500, detail=e)
+        generated_faqs = self.format_gerated_faqs(generated_faqs)
         similar_faqs = self.check_faq_similarity(generated_faqs)
         output = {"faqs": generated_faqs, "similarly_worded_faqs": similar_faqs}
 
