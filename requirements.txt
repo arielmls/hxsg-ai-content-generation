@@ -8,4 +8,6 @@ dataclasses
 openpyxl
 scikit-learn
 black
+pyflakes
 pytest
+mistletoe
