@@ -1,0 +1,40 @@
+{
+    "Gem Plumbing and Heating": {
+        "wordpress_pages_url": "https://askgem.com/wp-json/wp/v2/pages",
+        "service_categories": [
+            "https://askgem.com/hvac",
+            "https://askgem.com/plumbing",
+            "https://askgem.com/electrical",
+            "https://askgem.com/air-conditioning",
+            "https://askgem.com/heating",
+            "https://askgem.com/heat-pumps",
+            "https://askgem.com/air-quality",
+            "https://askgem.com/thermostats"
+        ]
+    },
+    "Haller Enterprises": {
+        "wordpress_pages_url": "https://hallerent.com/wp-json/wp/v2/pages",
+        "service_categories": [
+            "https://hallerent.com/hvac",
+            "https://hallerent.com/plumbing",
+            "https://hallerent.com/electrical",
+            "https://hallerent.com/air-conditioning",
+            "https://hallerent.com/heating",
+            "https://hallerent.com/heat-pumps",
+            "https://hallerent.com/air-quality"
+        ]
+    },
+    "Universe Home Services": {
+        "wordpress_pages_url": "https://universehomeservices.com/wp-json/wp/v2/pages",
+        "service_categories": [
+            "https://www.universehomeservices.com/hvac",
+            "https://www.universehomeservices.com/ppc",
+            "https://www.universehomeservices.com/plumbing",
+            "https://www.universehomeservices.com/electrical",
+            "https://www.universehomeservices.com/air-conditioning",
+            "https://www.universehomeservices.com/heating",
+            "https://www.universehomeservices.com/heat-pumps",
+            "https://www.universehomeservices.com/air-quality"
+        ]
+    }
+}

@@ -2,17 +2,19 @@ from typing import List
 import pandas as pd
 import json
 
-from .hxsg_brands import HXSGBrand
+from .hxsg_brands import HXSGBrand, ServicePages
 
 
 class InputFormatter:
-    def format_inputs(self, inputs: List[str], brand: HXSGBrand = HXSGBrand.HALLER):
+    def format_inputs(self, inputs: List[str], service_pages: ServicePages, brand):
         formatted = []
         for input in inputs:
             formatted_input = {
                 "topic": input,
                 "brand": brand.value,
-                "brand_service_pages": brand.brand_service_pages,
+                "brand_service_pages": service_pages.get_service_page_descriptions(
+                    brand
+                ),
             }
             formatted.append(formatted_input)
         return formatted
